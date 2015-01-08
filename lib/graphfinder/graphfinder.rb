@@ -1,7 +1,4 @@
 #!/usr/bin/env ruby
-require 'graphfinder'
-require 'sparql'
-
 module GraphFinder; end unless defined? GraphFinder
 
 # Generate variations of a graph pattern using the triple variation operations.

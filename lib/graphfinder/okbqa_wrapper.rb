@@ -5,7 +5,7 @@ module GraphFinder; end unless defined? GraphFinder
 
 class << GraphFinder
   # for OKBQA interface
-  def template_to_gp (template, disambiguation)
+  def okbqa_wrapper (template, disambiguation)
     raise ArgumentError, "Both template and disambiguation need to be supplied." if template.nil? || disambiguation.nil?
 
     entities = {}
