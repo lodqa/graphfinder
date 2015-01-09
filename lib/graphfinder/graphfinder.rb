@@ -199,7 +199,7 @@ class GraphFinder::GraphFinder
     body = ''
 
     # stringify the bgps
-    body += bgps.map{|tp| tp.map{|e| (nodes[e].nil? || nodes[e].empty?) ? '?' + e : "#{nodes[e][:term]}"}.join(' ')}.join(' . ') + ' .'
+    body += bgps.map{|tp| tp.map{|e| (nodes[e.to_sym].nil? || nodes[e.to_sym].empty?) ? '?' + e : "#{nodes[e.to_sym][:term]}"}.join(' ')}.join(' . ') + ' .'
 
     ## constraints on x-variables (including i-variables)
     x_variables = variables.dup.keep_if {|v| v[0] == 'x' or v[0] == 'i'}
