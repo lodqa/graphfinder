@@ -20,6 +20,15 @@ class GraphFinderWS < Sinatra::Base
 		erb :index
 	end
 
+	post '/queries' do
+		apgp = params[:apgp]
+		template = params[:template]
+		gp = GraphFinder::GraphFinder.new(apgp, template)
+
+		content_type :json
+		gp.sparql_queries.to_json
+	end
+
 	post '/okbqa/queries' do
 		template = params[:template]
 		disambiguation = params[:disambiguation]
