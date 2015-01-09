@@ -8,40 +8,29 @@ describe GraphFinderWS, "index" do
 		end
 	end
 
-	context "the path: post /okbqa/queries" do
+	context "the path: post /queries" do
 		before do
-	  	@template = {
-				query: "SELECT ?v2 WHERE { ?v1 ?p1 ?v2 . } ", 
-			  slots: [
-			  	{var: "v1", form: "Free University in Amsterdam", annotation: "owl:NamedIndividual" }, 
-			    {var: "p1", form: "students", annotation: "owl:DatatypeProperty" } 
-			  ], 
-			  score: 0.5
-    	}
-
-    	@disambiguation = {
-    		score:0.3,
-				entities: [
-					{
-						var: "v1", 
-            value: "http://dbpedia.org/resource/Free_University_of_Berlin",
-            score: 0.3
-					}
-    		],
-				properties: [
-					{
-          	var: "p1",
-          	value: "http://dbpedia.org/property/students",
-          	score: 0.7
-					}
+			@apgp = {
+				:nodes=>{
+					"v2"=>{},
+					"v1"=>{:text=>"rivers", :term=>"<http://dbpedia.org/ontology/River>", :annotation=>"owl:Class"},
+					"v5"=>{:text=>"Gunsan", :term=>"<http://dbpedia.org/resource/Gunsan>", :annotation=>"owl:NamedIndividual"},
+					"v3"=>{:text=>"flow through", :term=>"<http://dbpedia.org/ontology/city>", :annotation=>"owl:Property"},
+					"v4"=>{:text=>nil, :term=>"<rdf:type>", :annotation=>"owl:Property"}
+				},
+				:edges=>[
+					{:subject=>"v2", :object=>"v1", :text=>nil, :annotation=>"owl:Property", :term=>"rdf:type"},
+					{:subject=>"v2", :object=>"v5", :text=>"flow through", :annotation=>"owl:Property", :term=>"http://dbpedia.org/ontology/city"}
 				]
-    	}
+			}
+
+			@template = "SELECT ?v2 WHERE { _BGP_  }"
 		end
 
 	  it "should respond with 'ok' for 'post'" do
-	    post '/okbqa/queries'
+	    post '/queries', {apgp:@apgp, template:@template}.to_json
 	    expect(last_response).to be_ok
 		end
-
 	end
+
 end

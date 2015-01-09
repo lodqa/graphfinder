@@ -22,39 +22,31 @@ class GraphFinder::GraphFinder
     @apgp = apgp
     @template = template || DEFAULT_TEMPLATE
     @ignore_predicates = options[:ignore_predicates] || []
-    @sortal_predicates = options[:sortal_predicates] || []
+    @sortal_predicates = options[:sortal_predicates] || ["rdf:type", "rdfs:Class"]
     max_hop = options[:max_hop] || 2
+
+    index_edges(@apgp)
 
     @bgps = gen_bgps(apgp, max_hop)
     # sparql = compose_sparql(bgps, @apgp)
   end
 
   def sparql_queries
-    @bgps.map{|b| compose_sparql(b, @template, @apgp)}
+    @bgps.map{|bgp| compose_sparql(bgp, @template, @apgp)}
   end
 
   def each_solution
     @bgps.each do |bgp|
       sparql = compose_sparql(bgp, @apgp)
-      if @debug
-        puts "#{sparql}\n++++++++++"
-      end
       begin
         result = @endpoint.query(sparql)
       rescue => detail
-        if @debug
-          p detail
-          puts "==========\n"
-        end
         sleep(2)
         next
         # print detail.backtrace.join("\n")
       end 
       result.each_solution do |solution|
         yield(solution)
-      end
-      if @debug
-        puts "==========\n"
       end
       sleep(2)
     end
@@ -65,25 +57,15 @@ class GraphFinder::GraphFinder
       sparql = compose_sparql(bgp, @apgp)
       proc_sparql.call(sparql) unless proc_sparql.nil?
 
-      if @debug
-        puts "#{sparql}\n++++++++++"
-      end
       begin
         result = @endpoint.query(sparql)
       rescue => detail
-        if @debug
-          p detail
-          puts "==========\n"
-        end
         sleep(2)
         next
         # print detail.backtrace.join("\n")
       end 
       result.each_solution do |solution|
         proc_solution.call(solution) unless proc_solution.nil?
-      end
-      if @debug
-        puts "==========\n"
       end
       sleep(2)
     end
@@ -95,17 +77,22 @@ class GraphFinder::GraphFinder
   # The option _max_hop_ specifies the maximum number of hops to be searched.
   def gen_bgps (apgp, max_hop = 1)
     bgps = generate_split_variations(apgp[:edges], max_hop)
-    bgps = generate_inverse_variations(bgps)
-    bgps = generate_instantiation_variations(bgps, apgp)
+    # bgps = generate_inverse_variations(bgps)
+    # bgps = generate_instantiation_variations(bgps, apgp)
     bgps
   end
 
   def generate_split_variations(connections, max_hop)
     bgps = []
 
+    split_number = connections.select{|c| c[:term] != 'SORTAL'}.length
+
     # split and make bgps
-    split_scheme = []
-    (1 .. max_hop).collect{|e| e}.repeated_permutation(connections.length) do |split_scheme|
+    split_schemes = (1 .. max_hop).collect{|e| e}.repeated_permutation(split_number).to_a
+
+    split_schemes.each do |split_scheme|
+      # TODO
+      split_scheme.unshift(1) if split_number < connections.length
       bgps << generate_split_bgp(connections, split_scheme)
     end
 
@@ -116,7 +103,12 @@ class GraphFinder::GraphFinder
     bgp = []
     connections.each_with_index do |c, i|
       x_variables = (1 ... split_scheme[i]).collect{|j| ("x#{i}#{j}").to_s}
-      p_variables = (1 .. split_scheme[i]).collect{|j| ("p#{i}#{j}").to_s}
+
+      if c[:term] == 'SORTAL'
+        p_variables = ['s' + c[:object].to_s]
+      else
+        p_variables = (1 .. split_scheme[i]).collect{|j| ("p#{i}#{j}").to_s}
+      end
 
       # terms including x_variables and the initial and the final terms
       terms = [c[:subject], x_variables, c[:object]].flatten
@@ -145,18 +137,19 @@ class GraphFinder::GraphFinder
   def generate_instantiation_variations(bgps, apgp)
     iids = {}
     apgp[:nodes].each do |id, node|
-      iid = class?(id, apgp) ? 'i' + id : nil
+      iid = class?(id, apgp) ? 'i' + id.to_s : nil
       iids[id] = iid unless iid.nil?
     end
 
     ibgps = []
     bgps.each do |bgp|
+
       [false, true].repeated_permutation(iids.keys.length) do |instantiate_scheme|
         # id of the terms to be instantiated
         itids = iids.keys.keep_if.with_index{|t, i| instantiate_scheme[i]}
 
         # initialize the instantiated bgp with the triple patterns for term instantiation
-        ibgp = itids.collect{|t| [iids[t], 's' + t, t]}
+        ibgp = itids.collect{|t| [iids[t], 's' + t.to_s, t.to_s]}
 
         # add update triples
         bgp.each{|tp| ibgp << tp.map{|e| itids.include?(e)? iids[e] : e}}
@@ -176,6 +169,16 @@ class GraphFinder::GraphFinder
     end
   end
 
+  def index_edges(apgp)
+    edge_index = {}
+    apgp[:edges].each do |e|
+      edge_index["#{e[:subject]}-#{e[:object]}"] = e
+    end
+
+    apgp[:edge_index] = edge_index
+  end
+
+
   # def class?(term)
   #   if /^http:/.match(term)
   #     sparql = "SELECT ?p WHERE {?s ?p <#{term}> FILTER (str(?p) IN (#{@sortal_predicates.map{|s| '"'+s+'"'}.join(', ')}))} LIMIT 1"
@@ -184,6 +187,7 @@ class GraphFinder::GraphFinder
   #   end
   #   return false
   # end
+
 
   def compose_sparql(bgps, template, apgp)
     nodes = apgp[:nodes]
