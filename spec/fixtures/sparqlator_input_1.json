@@ -1,0 +1,32 @@
+{
+	"apgp": {
+		"nodes": {
+			"v2": {},
+			"v1": {
+				"text": "rivers",
+				"term": "<http://dbpedia.org/ontology/River>",
+				"type": "owl:Class"
+			},
+			"v5": {
+				"text": "Gunsan",
+				"term": "<http://dbpedia.org/resource/Gunsan>",
+				"type": "owl:NamedIndividual"
+			}
+		},
+		"relations": {
+			"v4": {
+				"subject": "v2",
+				"object": "v1",
+				"type": "gf:Sortal"
+			},
+			"v3": {
+				"subject": "v2",
+				"object": "v5",
+				"text": "flow through",
+				"term": "<http://dbpedia.org/ontology/city>",
+				"type": "owl:Property"
+			}
+		}
+	},
+	"frame": "SELECT ?v2 WHERE { _BGP_ }"
+}

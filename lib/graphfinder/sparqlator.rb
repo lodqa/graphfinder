@@ -1,11 +1,12 @@
 #!/usr/bin/env ruby
 module GraphFinder; end unless defined? GraphFinder
 
-GraphFinder::DEFAULT_TEMPLATE = 'SELECT * WHERE { _BGP_ }'
-GraphFinder::SORTAL_PREDICATES = ["rdf:type", "rdfs:Class"]
 
 # Generate variations of a graph pattern using the triple variation operations.
-class << GraphFinder
+class GraphFinder::Sparqlator
+
+  DEFAULT_TEMPLATE = 'SELECT * WHERE { _BGP_ }'
+  SORTAL_PREDICATES = ["rdf:type", "rdfs:Class"]
 
   # This method takes as arguments
   # - an anchored pseudo graph pattern (apgp),
@@ -17,60 +18,25 @@ class << GraphFinder
   # The apgp is supposed to be a structural repesentation of the BGP.
   # From the gp, many variations of the BGP will be generated, and
   # they will replace the BGP to produce variations of SPARQL queries.
-  def sparqlator (apgp, template = nil, options = {})
+  def initialize (apgp, template = nil, options = {})
     raise ArgumentError, "An anchored PGP needs to be passed" if apgp.nil?
 
     options ||= {}
     @apgp = apgp
     @template = template || DEFAULT_TEMPLATE
     @ignore_predicates = options[:ignore_predicates] || []
-    @sortal_predicates = options[:sortal_predicates] || GraphFinder::SORTAL_PREDICATES
+    @sortal_predicates = options[:sortal_predicates] || SORTAL_PREDICATES
     max_hop = options[:max_hop] || 2
 
-    index_edges(@apgp)
+    @s_var = 0
+    @p_var = 0
+    @x_var = 0
 
     @bgps = gen_bgps(apgp, max_hop)
-    # sparql = compose_sparql(bgps, @apgp)
   end
 
   def sparql_queries
     @bgps.map{|bgp| compose_sparql(bgp, @template, @apgp)}
-  end
-
-  def each_solution
-    @bgps.each do |bgp|
-      sparql = compose_sparql(bgp, @apgp)
-      begin
-        result = @endpoint.query(sparql)
-      rescue => detail
-        sleep(2)
-        next
-        # print detail.backtrace.join("\n")
-      end 
-      result.each_solution do |solution|
-        yield(solution)
-      end
-      sleep(2)
-    end
-  end
-
-  def each_sparql_and_solution(proc_sparql = nil, proc_solution = nil)
-    @bgps.each do |bgp|
-      sparql = compose_sparql(bgp, @apgp)
-      proc_sparql.call(sparql) unless proc_sparql.nil?
-
-      begin
-        result = @endpoint.query(sparql)
-      rescue => detail
-        sleep(2)
-        next
-        # print detail.backtrace.join("\n")
-      end 
-      result.each_solution do |solution|
-        proc_solution.call(solution) unless proc_solution.nil?
-      end
-      sleep(2)
-    end
   end
 
   private
@@ -78,55 +44,54 @@ class << GraphFinder
   # It generates bgps by applying variation operations to the apgp.
   # The option _max_hop_ specifies the maximum number of hops to be searched.
   def gen_bgps (apgp, max_hop = 1)
-    bgps = generate_split_variations(apgp[:edges], max_hop)
-    # bgps = generate_inverse_variations(bgps)
-    # bgps = generate_instantiation_variations(bgps, apgp)
+    bgp  = generate_initial_bgp(apgp)
+    bgps = generate_split_variations(bgp, max_hop)
+    bgps = generate_inverse_variations(bgps)
+    bgps = generate_instantiation_variations(bgps, apgp)
     bgps
   end
 
   def generate_initial_bgp(apgp)
-
-    agpg[:edges].each do |e|
+    r = apgp['relations']
+    bgp = r.keys.map do |rid|
+      # be careful for the naming convention of variables
+      p = (r[rid]['type'] == 'gf:Sortal')? 's' + r[rid]["object"] : rid
+      [r[rid]["subject"], p,  r[rid]["object"]]
     end
-
   end
 
-  def generate_split_variations(connections, max_hop)
+  def generate_split_variations(bgp, max_hop)
     bgps = []
 
-    split_number = connections.select{|c| c[:term] != 'SORTAL'}.length
+    tps_to_split = bgp.reject{|tp| tp[1][0] == 's'}
 
     # split and make bgps
-    split_schemes = (1 .. max_hop).collect{|e| e}.repeated_permutation(split_number).to_a
-
-    split_schemes.each do |split_scheme|
-      # TODO
-      split_scheme.unshift(1) if split_number < connections.length
-      bgps << generate_split_bgp(connections, split_scheme)
+    (1 .. max_hop).to_a.repeated_permutation(tps_to_split.length) do |split_scheme|
+      full_scheme = bgp.map{|t| (t[1][0] == 's')? 1 : split_scheme.shift}
+      bgps << generate_split_bgp(bgp, full_scheme)
     end
 
     bgps
   end
 
-  def generate_split_bgp(connections, split_scheme)
-    bgp = []
-    connections.each_with_index do |c, i|
-      x_variables = (1 ... split_scheme[i]).collect{|j| ("x#{i}#{j}").to_s}
-
-      if c[:term] == 'SORTAL'
-        p_variables = ['s' + c[:object].to_s]
+  def generate_split_bgp(bgp, split_scheme)
+    sbgp = []
+    bgp.each_with_index do |tp, i|
+      if split_scheme[i] == 1
+        sbgp << tp
       else
+        x_variables = (1 ... split_scheme[i]).collect{|j| ("x#{i}#{j}").to_s}
         p_variables = (1 .. split_scheme[i]).collect{|j| ("p#{i}#{j}").to_s}
+
+        # terms including x_variables and the initial and the final terms
+        terms = [tp[0], x_variables, tp[2]].flatten
+
+        # triple patterns
+        tps = (0 ... p_variables.length).collect{|i| [terms[i], p_variables[i], terms[i + 1]]}
+        sbgp += tps
       end
-
-      # terms including x_variables and the initial and the final terms
-      terms = [c[:subject], x_variables, c[:object]].flatten
-
-      # triple patterns
-      tps = (0 ... p_variables.length).collect{|i| [terms[i], p_variables[i], terms[i + 1]]}
-      bgp += tps
     end
-    bgp
+    sbgp
   end
 
   # make variations by inversing each triple pattern
@@ -134,8 +99,12 @@ class << GraphFinder
     rbgps = []
 
     bgps.each do |bgp|
-      [false, true].repeated_permutation(bgp.length) do |inverse_scheme|
-        rbgps << bgp.map.with_index {|tp, i| inverse_scheme[i]? tp.reverse : tp}
+
+      tps_to_inverse = bgp.reject{|tp| tp[1][0] == 's'}
+
+      [false, true].repeated_permutation(tps_to_inverse.length) do |inverse_scheme|
+        full_scheme = bgp.map{|tp| (tp[1][0] == 's')? false : inverse_scheme.shift}
+        rbgps << bgp.map.with_index {|tp, i| full_scheme[i]? tp.reverse : tp}
       end
     end
 
@@ -145,8 +114,8 @@ class << GraphFinder
   # make variations by instantiating terms
   def generate_instantiation_variations(bgps, apgp)
     iids = {}
-    apgp[:nodes].each do |id, node|
-      iid = class?(id, apgp) ? 'i' + id.to_s : nil
+    apgp["nodes"].each do |id, node|
+      iid = instantiable?(id, apgp) ? 'i' + id : nil
       iids[id] = iid unless iid.nil?
     end
 
@@ -170,23 +139,15 @@ class << GraphFinder
     ibgps
   end
 
-  def class?(term, apgp)
-    if apgp[:nodes][term][:annotation] == 'owl:Class'
-      return true
-    else
-      return false
-    end
+  def instantiable?(tid, apgp)
+    # step 1. false if tid is already instantiated in the APGP
+    apgp['relations'].each {|rid, r| return false if r['type'] == 'gf:Sortal' && r['object'] == tid}
+
+    # step 2. true if the term is annotated as owl:Class. This step is dependent on step 1.
+    return true if apgp['nodes'][tid]['type'] == 'owl:Class'
+
+    return false
   end
-
-  def index_edges(apgp)
-    edge_index = {}
-    apgp[:edges].each do |e|
-      edge_index["#{e[:subject]}-#{e[:object]}"] = e
-    end
-
-    apgp[:edge_index] = edge_index
-  end
-
 
   # def class?(term)
   #   if /^http:/.match(term)
@@ -197,9 +158,8 @@ class << GraphFinder
   #   return false
   # end
 
-
   def compose_sparql(bgps, template, apgp)
-    nodes = apgp[:nodes]
+    nodes = apgp['nodes']
 
     # get the variables
     variables = bgps.flatten.uniq - nodes.keys
@@ -208,7 +168,7 @@ class << GraphFinder
     body = ''
 
     # stringify the bgps
-    body += bgps.map{|tp| tp.map{|e| (nodes[e.to_sym].nil? || nodes[e.to_sym].empty?) ? '?' + e : "#{nodes[e.to_sym][:term]}"}.join(' ')}.join(' . ') + ' .'
+    body += bgps.map{|tp| tp.map{|e| (nodes[e].nil? || nodes[e].empty?) ? '?' + e : "#{nodes[e]['term']}"}.join(' ')}.join(' . ') + ' .'
 
     ## constraints on x-variables (including i-variables)
     x_variables = variables.dup.keep_if {|v| v[0] == 'x' or v[0] == 'i'}

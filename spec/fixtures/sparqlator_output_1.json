@@ -1,0 +1,8 @@
+[
+"SELECT ?v2 WHERE { ?v2 ?sv1 <http://dbpedia.org/ontology/River> . ?v2 ?v3 <http://dbpedia.org/resource/Gunsan> . FILTER (str(?sv1) IN (\"rdf:type\", \"rdfs:Class\")) }",
+"SELECT ?v2 WHERE { ?v2 ?sv1 <http://dbpedia.org/ontology/River> . <http://dbpedia.org/resource/Gunsan> ?v3 ?v2 . FILTER (str(?sv1) IN (\"rdf:type\", \"rdfs:Class\")) }",
+"SELECT ?v2 WHERE { ?v2 ?sv1 <http://dbpedia.org/ontology/River> . ?v2 ?p11 ?x11 . ?x11 ?p12 <http://dbpedia.org/resource/Gunsan> . FILTER (str(?p11) NOT IN (\"rdf:type\", \"rdfs:Class\")) FILTER (str(?p12) NOT IN (\"rdf:type\", \"rdfs:Class\")) FILTER (str(?sv1) IN (\"rdf:type\", \"rdfs:Class\")) }",
+"SELECT ?v2 WHERE { ?v2 ?sv1 <http://dbpedia.org/ontology/River> . ?v2 ?p11 ?x11 . <http://dbpedia.org/resource/Gunsan> ?p12 ?x11 . FILTER (str(?p11) NOT IN (\"rdf:type\", \"rdfs:Class\")) FILTER (str(?p12) NOT IN (\"rdf:type\", \"rdfs:Class\")) FILTER (str(?sv1) IN (\"rdf:type\", \"rdfs:Class\")) }",
+"SELECT ?v2 WHERE { ?v2 ?sv1 <http://dbpedia.org/ontology/River> . ?x11 ?p11 ?v2 . ?x11 ?p12 <http://dbpedia.org/resource/Gunsan> . FILTER (str(?p11) NOT IN (\"rdf:type\", \"rdfs:Class\")) FILTER (str(?p12) NOT IN (\"rdf:type\", \"rdfs:Class\")) FILTER (str(?sv1) IN (\"rdf:type\", \"rdfs:Class\")) }",
+"SELECT ?v2 WHERE { ?v2 ?sv1 <http://dbpedia.org/ontology/River> . ?x11 ?p11 ?v2 . <http://dbpedia.org/resource/Gunsan> ?p12 ?x11 . FILTER (str(?p11) NOT IN (\"rdf:type\", \"rdfs:Class\")) FILTER (str(?p12) NOT IN (\"rdf:type\", \"rdfs:Class\")) FILTER (str(?sv1) IN (\"rdf:type\", \"rdfs:Class\")) }"
+]
