@@ -1,5 +1,3 @@
-require 'spec_helper'
-
 describe GraphFinder do
 	describe "#sparqlator" do
 		context "for error handling" do
@@ -44,16 +42,16 @@ describe GraphFinder do
 
 		  end
 
-	  it "should generate variations of equivalent SPARQL queries" do
-			gf = GraphFinder::GraphFinder.new(@apgp, @frame)
-	  	expect(gf.sparql_queries).to eql(@queries)
-	  end
+		  it "should generate variations of equivalent SPARQL queries" do
+				gf = GraphFinder::GraphFinder.new(@apgp, @frame)
+		  	expect(gf.sparql_queries).to eql(@queries)
+		  end
 
-	  it "should generate variations of equivalent SPARQL queries" do
-			gf = GraphFinder::GraphFinder.new(@apgp)
-	  	expect(gf.sparql_queries).to eql(@gp)
-	  end
-
+		  it "should generate variations of equivalent SPARQL queries" do
+				gf = GraphFinder::GraphFinder.new(@apgp)
+		  	expect(gf.sparql_queries).to eql(@gp)
+		  end
+		end
 	end
 
 	context "for normal input" do

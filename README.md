@@ -26,12 +26,12 @@ Output
 
 * Variation of SPARQL queries that represents the APGP and template.
 
-AUTHOR(S)
----------
+Author
+------
 
-* Jin-Dong Kim, Database Center for Life Science
+* [Jin-Dong Kim](http://data.dbcls.jp/~jdkim/)
 
 License
 -------
 
-Released under the MIT license (http://opensource.org/licenses/MIT).
+Released under the [MIT license](http://opensource.org/licenses/MIT).

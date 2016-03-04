@@ -58,6 +58,7 @@ class GraphFinder::Sparqlator
       p = (r[rid]['type'] == 'gf:Sortal')? 's' + r[rid]["object"] : rid
       [r[rid]["subject"], p,  r[rid]["object"]]
     end
+    bgp
   end
 
   def generate_split_variations(bgp, max_hop)
@@ -87,7 +88,7 @@ class GraphFinder::Sparqlator
         terms = [tp[0], x_variables, tp[2]].flatten
 
         # triple patterns
-        tps = (0 ... p_variables.length).collect{|i| [terms[i], p_variables[i], terms[i + 1]]}
+        tps = (0 ... p_variables.length).collect{|k| [terms[k], p_variables[k], terms[k + 1]]}
         sbgp += tps
       end
     end
