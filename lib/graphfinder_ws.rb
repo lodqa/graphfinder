@@ -33,12 +33,11 @@ class GraphFinderWS < Sinatra::Base
 		begin
 			raise ArgumentError, @error_message if @error_message
 
-			p params
-			puts "-----"
-
 			apgp = params["apgp"]
 			frame = params["frame"]
-			gp = GraphFinder::Sparqlator.new(apgp, frame)
+			options = {max_hop: params["max_hop"]} unless params["max_hop"].nil?
+
+			gp = GraphFinder::Sparqlator.new(apgp, frame, options)
 
 			content_type :json
 			gp.sparql_queries.to_json
