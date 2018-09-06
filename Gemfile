@@ -1,6 +1,8 @@
 source 'https://rubygems.org'
+ruby '2.5.1'
+
 gem 'rack', '1.5.2'
-gem 'thin'
+gem 'puma'
 gem 'erubis'
 
 gem 'sparql'
