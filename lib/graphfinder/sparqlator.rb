@@ -193,14 +193,14 @@ class GraphFinder::Sparqlator
     ex_predicates += @sortal_predicates
 
     unless ex_predicates.empty?
-      p_variables.each {|v| body += %| FILTER (str(?#{v}) NOT IN (#{ex_predicates.map{|s| '"'+s+'"'}.join(', ')}))|}
+      p_variables.each {|v| body += %| FILTER (?#{v} NOT IN (#{ex_predicates.map{|s| s}.join(', ')}))|}
     end
 
     ## constraintes on s-variables
     s_variables = variables.dup.keep_if{|v| v[0] == 's'}
 
     # s-variables to be bound to sortal predicates
-    s_variables.each {|v| body += %| FILTER (str(?#{v}) IN (#{@sortal_predicates.map{|s| '"'+s+'"'}.join(', ')}))|}
+    s_variables.each {|v| body += %| FILTER (?#{v} IN (#{@sortal_predicates.map{|s| s}.join(', ')}))|}
 
     template.gsub(/_BGP_/, body)
   end
